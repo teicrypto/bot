@@ -1,1 +1,0 @@
-user=%7B%22id%22%3A7367615925%2C%22first_name%22%3A%22L%C6%B0u%20Th%C3%A1i%20Ng%E1%BB%8Dc%22%2C%22last_name%22%3A%22%22%2C%22username%22%3A%22thaingoc99p%22%2C%22language_code%22%3A%22vi%22%7D&chat_instance=7267937212370195388&chat_type=channel&start_param=referral&auth_date=1729439762&hash=96f62f4e55e4a2d7e47d0538e191fa995fe7ef22bef76ed2ab3cc81968bff204
