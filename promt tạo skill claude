@@ -1,0 +1,187 @@
+Tôi có hệ thống auto check-in Node.js (ESM, Node 18+). Hãy viết file skill mới theo đúng cấu trúc dưới đây.
+
+═══════════════════════════════════════════
+PHẦN 1 — CẤU TRÚC PROJECT (KHÔNG THAY ĐỔI)
+═══════════════════════════════════════════
+
+auto-checkin/
+├── index.js
+├── cookies.txt           ← format: tên_kèo=cookie_value (1 dòng/kèo)
+├── utils/
+│   ├── loadCookies.js    ← export getCookie(name: string): string
+│   └── logger.js         ← export log(platform, msg, type), logResult(platform, success, detail)
+└── auto/
+    └── [tên_kèo].js      ← FILE CẦN TẠO
+
+═══════════════════════════════════════════
+PHẦN 2 — QUY TẮC BẮT BUỘC KHI VIẾT SKILL
+═══════════════════════════════════════════
+
+1. IMPORTS — luôn dùng đúng 2 dòng này, không thêm thư viện ngoài:
+   import { getCookie } from "../utils/loadCookies.js";
+   import { log, logResult } from "../utils/logger.js";
+
+2. EXPORT — chỉ export duy nhất 1 hàm:
+   export async function run() { ... }
+
+3. LẤY COOKIE — luôn wrap trong try/catch:
+   const cookie = getCookie("tên_kèo"); // tên_kèo phải khớp với key trong cookies.txt
+
+4. HEADERS — luôn có đủ các field sau (điều chỉnh value theo kèo):
+   {
+     "accept": "application/json, text/plain, */*",
+     "accept-language": "en-US,en;q=0.9",
+     "content-type": "application/json",       ← đổi nếu kèo dùng form-data
+     "cookie": cookie,
+     "referer": `${BASE_URL}/dashboard`,        ← đổi path nếu khác
+     "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+     "origin": BASE_URL,
+   }
+   Nếu kèo dùng Authorization Bearer thay cookie thì thêm:
+   "authorization": `Bearer ${cookie}`,
+
+5. XỬ LÝ RESPONSE — phải handle đủ 4 case:
+   - res.status === 401 → cookie hết hạn
+   - res.ok (200-299) → thành công
+   - res không ok → thất bại có lý do
+   - fetch() throw → lỗi mạng
+
+6. RETURN VALUE — luôn return object:
+   { success: true/false, platform: PLATFORM, data/reason: ... }
+
+7. MULTI-STEP — nếu check-in cần nhiều bước (login → get token → checkin):
+   - Làm từng bước tuần tự
+   - Log rõ từng bước: log(PLATFORM, "Bước 1: lấy token...")
+   - Nếu bước nào thất bại thì return early, không làm tiếp
+
+8. GRAPHQL — nếu API dùng GraphQL:
+   body: JSON.stringify({
+     query: `mutation { ... }`,
+     variables: { ... }
+   })
+   Check lỗi trong data.errors thay vì chỉ check res.ok
+
+9. KHÔNG dùng: axios, puppeteer, cheerio hoặc bất kỳ package ngoài nào
+   Chỉ dùng: fetch() native + import từ utils/
+
+═══════════════════════════════════════════
+PHẦN 3 — THÔNG TIN KÈO MỚI (BẠN ĐIỀN VÀO)
+═══════════════════════════════════════════
+
+Tên kèo (chữ thường, không dấu, không space):
+  [VD: galxe]
+
+URL trang dashboard (dùng làm referer + origin):
+  [VD: https://app.galxe.com]
+
+Cách xác thực (chọn 1):
+  [ ] Cookie trong header
+  [ ] Authorization: Bearer token
+  [ ] Cả hai
+
+Số bước để check-in:
+  [ ] 1 bước (gọi thẳng API check-in)
+  [ ] Nhiều bước: [mô tả ngắn gọn từng bước]
+
+─── THÔNG TIN TỪNG BƯỚC (copy từ DevTools Network tab) ───
+
+[Nếu 1 bước:]
+  Endpoint  : [VD: POST https://app.galxe.com/api/checkin]
+  Headers đặc biệt (ngoài headers chuẩn):
+    [VD: x-csrf-token: abc123]
+  Body      : [VD: {"type":"daily"} hoặc để trống nếu không có body]
+
+[Nếu nhiều bước, lặp lại cho mỗi bước:]
+  Bước 1 — [tên bước, VD: Lấy access token]
+    Endpoint: [method + URL]
+    Headers đặc biệt: [nếu có]
+    Body    : [nếu có]
+    Dùng gì từ response cho bước sau: [VD: data.token]
+
+  Bước 2 — [tên bước, VD: Gọi check-in]
+    Endpoint: [method + URL]
+    Headers đặc biệt: [VD: authorization: Bearer {token từ bước 1}]
+    Body    : [nếu có]
+
+Response khi THÀNH CÔNG trông như thế nào:
+  [VD: {"success":true,"points":10} hoặc {"data":{"checkIn":{"id":"123"}}}]
+
+Response khi ĐÃ CHECK-IN RỒI (nếu biết):
+  [VD: {"error":"Already checked in today"}]
+
+═══════════════════════════════════════════
+PHẦN 4 — VÍ DỤ THAM KHẢO (output mong muốn)
+═══════════════════════════════════════════
+
+// auto/galxe.js
+import { getCookie } from "../utils/loadCookies.js";
+import { log, logResult } from "../utils/logger.js";
+
+const PLATFORM = "galxe";
+const BASE_URL = "https://app.galxe.com";
+
+export async function run() {
+  log(PLATFORM, "Bắt đầu check-in...");
+
+  let cookie;
+  try {
+    cookie = getCookie(PLATFORM);
+  } catch (err) {
+    log(PLATFORM, err.message, "error");
+    return { success: false, platform: PLATFORM };
+  }
+
+  const headers = {
+    "accept": "application/json, text/plain, */*",
+    "accept-language": "en-US,en;q=0.9",
+    "content-type": "application/json",
+    "cookie": cookie,
+    "referer": `${BASE_URL}/dashboard`,
+    "user-agent": "Mozilla/5.0 ...",
+    "origin": BASE_URL,
+  };
+
+  try {
+    // Bước 1: lấy token (nếu cần)
+    log(PLATFORM, "Bước 1: lấy access token...");
+    const tokenRes = await fetch(`${BASE_URL}/api/auth/token`, {
+      method: "GET", headers,
+    });
+    if (tokenRes.status === 401) {
+      logResult(PLATFORM, false, "Cookie hết hạn (401)");
+      return { success: false, platform: PLATFORM, reason: "unauthorized" };
+    }
+    const { token } = await tokenRes.json();
+
+    // Bước 2: check-in
+    log(PLATFORM, "Bước 2: gọi check-in...");
+    const res = await fetch(`${BASE_URL}/api/checkin`, {
+      method: "POST",
+      headers: { ...headers, "authorization": `Bearer ${token}` },
+      body: JSON.stringify({ type: "daily" }),
+    });
+    const data = await res.json().catch(() => ({}));
+
+    if (res.ok) {
+      logResult(PLATFORM, true, data?.message || "OK");
+      return { success: true, platform: PLATFORM, data };
+    } else {
+      logResult(PLATFORM, false, data?.message || res.status);
+      return { success: false, platform: PLATFORM, reason: data?.message };
+    }
+  } catch (err) {
+    log(PLATFORM, `Lỗi mạng: ${err.message}`, "error");
+    return { success: false, platform: PLATFORM, reason: err.message };
+  }
+}
+
+═══════════════════════════════════════════
+YÊU CẦU OUTPUT
+═══════════════════════════════════════════
+
+1. Viết file auto/[tên_kèo].js hoàn chỉnh, sẵn sàng chạy
+2. Cuối file thêm comment hướng dẫn:
+   // SETUP: Thêm vào cookies.txt dòng: tên_kèo=your_cookie_here
+3. Nếu có bất kỳ thông tin nào còn thiếu hoặc không chắc chắn,
+   hãy ghi rõ dưới dạng comment // TODO: ... trong code thay vì tự đoán
+4. Không thêm bất kỳ thư viện nào ngoài những gì đã có
