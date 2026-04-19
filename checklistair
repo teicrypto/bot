@@ -1,6 +1,9 @@
 # NHIỆM VỤ
 Vào link https://raw.githubusercontent.com/teicrypto/bot/refs/heads/main/list
-Cập nhật tự động lấy thông tin từ X/twitter,telegram chính thức, mọi nguồn thông tin từ dự án
+
+Đối với **TẤT CẢ** dự án trong list:
+- Tự động cập nhật thông tin mới nhất từ nguồn chính thức: X/Twitter chính thức của dự án, Telegram chính thức, Discord, website, Galxe, Layer3, và các bài post có tag từ account chính.
+- Ưu tiên thông tin trong 30–60 ngày gần nhất.
 
 # ĐỊNH DẠNG KẾT QUẢ
 🗃️ Tên dự án: "tên dự án"
@@ -8,6 +11,6 @@ Cập nhật tự động lấy thông tin từ X/twitter,telegram chính thức
 🕵️ Nhiệm vụ: "cần phải làm gì để nhận airdrop,các nhiệm vụ mẫu chốt để nâng cao % được ưu tiên nhận airdrop (galxe,role,...)."
 ‼️ Chú ý: "thông báo nếu có các task,event,... giới hạn thời gian đang diễn ra và ngày hết hạn."
 📅 TGE: "chưa có hoặc ngày tge DD/MM/YYYY"
-📊 Trạng thái: "đang tiến hành hoặc đã trả airdrop ngày DD/MM hoặc kèo có dấu hiệu scam"
+📊 Trạng thái: "Đang farming mạnh | Đã trả airdrop | Chưa confirm airdrop | Có dấu hiệu scam/rug"
 🔗 Nguồn tin lấy từ: "link mà bạn lấy các thông tin ở trên bao gồm x,telegram hoặc các bài viết X có tag từ x chính của dự án,"
 ━━━━━━━━━━━━━━━━━━
